@@ -34,6 +34,7 @@ from gi.repository import Gtk, GLib, Gdk, WebKit2
 # camera.position.y - issObject.position.y      # Z
 
 class DumbBot:
+    """A very very dumb bot to pilot the craft.  Do not trust it."""
     def __init__(self, browser_window):
         self.run_bot = False
         self.thread_handle = threading.Thread(target=self.main_thread)
@@ -44,49 +45,52 @@ class DumbBot:
         self.run_bot = True
 
         translation_tick = 0
-        tranlation_tick_slice = 100
+        translation_tick_slice = 100
         orientation_tick = 0
         orientation_tick_slice = 50
 
+        print("Starting Bot")
         while self.run_bot:
-            print("Running bot")
             GLib.idle_add(self.browser_window.query_craft_values)
-            GLib.idle_add(self.browser_window.print_craft_values)
             if orientation_tick % orientation_tick_slice == 0:
                 # Pitch
-                if self.browser_window.fixedRotationX[0] > 0 and self.browser_window.rateRotationX[0] < (min(abs(self.browser_window.fixedRotationX[0]), 1) * 2):
+                if self.browser_window.get_fixed_rotation_x() > 0 and self.browser_window.get_rate_rotation_x() < (
+                        min(abs(self.browser_window.get_fixed_rotation_x()), 1) * 2):
                     GLib.idle_add(self.browser_window.pitch_down)
-                if self.browser_window.fixedRotationX[0] < 0 and self.browser_window.rateRotationX[0] > (min(abs(self.browser_window.fixedRotationX[0]), 1) * -2):
+                if self.browser_window.get_fixed_rotation_x() < 0 and self.browser_window.get_rate_rotation_x() > (
+                        min(abs(self.browser_window.get_fixed_rotation_x()), 1) * -2):
                     GLib.idle_add(self.browser_window.pitch_up)
                 # Yaw
-                if self.browser_window.fixedRotationY[0] > 0 and self.browser_window.rateRotationY[0] < (min(abs(self.browser_window.fixedRotationY[0]), 1) * 2):
+                if self.browser_window.get_fixed_rotation_y() > 0 and self.browser_window.get_rate_rotation_y() < (
+                        min(abs(self.browser_window.get_fixed_rotation_y()), 1) * 2):
                     GLib.idle_add(self.browser_window.yaw_right)
-                if self.browser_window.fixedRotationY[0] < 0 and self.browser_window.rateRotationY[0] > (min(abs(self.browser_window.fixedRotationY[0]), 1) * -2):
+                if self.browser_window.get_fixed_rotation_y() < 0 and self.browser_window.get_rate_rotation_y() > (
+                        min(abs(self.browser_window.get_fixed_rotation_y()), 1) * -2):
                     GLib.idle_add(self.browser_window.yaw_left)
                 # Roll
-                if self.browser_window.fixedRotationZ[0] > 0 and self.browser_window.rateRotationZ[0] < (
-                        min(abs(self.browser_window.fixedRotationZ[0]), 1) * 2):
+                if self.browser_window.get_fixed_rotation_z() > 0 and self.browser_window.get_rate_rotation_z() < (
+                        min(abs(self.browser_window.get_fixed_rotation_z()), 1) * 2):
                     GLib.idle_add(self.browser_window.roll_right)
-                if self.browser_window.fixedRotationZ[0] < 0 and self.browser_window.rateRotationZ[0] > (
-                        min(abs(self.browser_window.fixedRotationZ[0]), 1) * -2):
+                if self.browser_window.get_fixed_rotation_z() < 0 and self.browser_window.get_rate_rotation_z()> (
+                        min(abs(self.browser_window.get_fixed_rotation_z()), 1) * -2):
                     GLib.idle_add(self.browser_window.roll_left)
 
-            if translation_tick % tranlation_tick_slice == 0:
-                # Translate Y
-                if self.browser_window.x[0] < 0:
+            if translation_tick % translation_tick_slice == 0:
+                # Translate X
+                if self.browser_window.get_translation_y() < 0:
                     GLib.idle_add(self.browser_window.translate_right)
-                if self.browser_window.x[0] > 0:
+                if self.browser_window.get_translation_y() > 0:
                     GLib.idle_add(self.browser_window.translate_left)
                 # Translate Z
-                if self.browser_window.y[0] < 0:
+                if self.browser_window.get_translation_z() < 0:
                     GLib.idle_add(self.browser_window.translate_up)
-                if self.browser_window.y[0] > 0:
+                if self.browser_window.get_translation_z() > 0:
                     GLib.idle_add(self.browser_window.translate_down)
 
             orientation_tick += 1
             translation_tick += 1
             time.sleep(0.01)
-            print("bot loop done")
+        print("Bot Loop Stopped.")
 
     def start(self):
         self.thread_handle.start()
@@ -95,9 +99,9 @@ class DumbBot:
         self.run_bot = False
 
 
-class BrowserTab(Gtk.VBox):
+class ISSSimTab(Gtk.VBox):
     def __init__(self, *args, **kwargs):
-        super(BrowserTab, self).__init__(*args, **kwargs)
+        super(ISSSimTab, self).__init__(*args, **kwargs)
 
         self.fixedRotationX = [0]  # Pitch
         self.fixedRotationY = [0]  # Yaw
@@ -123,17 +127,8 @@ class BrowserTab(Gtk.VBox):
         self.translateLeft_javascript = "translateLeft()"
         self.bot = DumbBot(self)
 
-        go_button = Gtk.Button.new_with_label("go to...")
-        go_button.connect("clicked", self._load_url)
-        self.url_bar = Gtk.Entry()
-        self.url_bar.connect("activate", self._load_url)
         self.webview = WebKit2.WebView()
         self.show()
-
-        self.go_back = Gtk.Button.new_with_label("Back")
-        self.go_back.connect("clicked", lambda x: self.webview.go_back())
-        self.go_forward = Gtk.Button.new_with_label("Forward")
-        self.go_forward.connect("clicked", lambda x: self.webview.go_forward())
 
         self.get_bot_values_button = Gtk.Button.new_with_label("Get Bot Values")
         self.get_bot_values_button.connect("clicked", lambda x: self.query_craft_values())
@@ -149,41 +144,15 @@ class BrowserTab(Gtk.VBox):
         scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.add(self.webview)
 
-        find_box = Gtk.HBox()
-        close_button = Gtk.Button.new_with_label("Close")
-        close_button.connect("clicked", lambda x: find_box.hide())
-        self.find_entry = Gtk.Entry()
-        self.find_entry.connect("activate",
-                                lambda x: self.webview.search_text(self.find_entry.get_text(),
-                                                                   False, True, True))
-        prev_button = Gtk.Button.new_with_label("Previous")
-        next_button = Gtk.Button.new_with_label("Next")
-        prev_button.connect("clicked",
-                            lambda x: self.webview.search_text(self.find_entry.get_text(),
-                                                               False, False, True))
-        next_button.connect("clicked",
-                            lambda x: self.webview.search_text(self.find_entry.get_text(),
-                                                               False, True, True))
-        find_box.pack_start(close_button, False, False, 0)
-        find_box.pack_start(self.find_entry, False, False, 0)
-        find_box.pack_start(prev_button, False, False, 0)
-        find_box.pack_start(next_button, False, False, 0)
-        self.find_box = find_box
-
         url_box = Gtk.HBox()
-        url_box.pack_start(self.go_back, False, False, 0)
-        url_box.pack_start(self.go_forward, False, False, 0)
         url_box.pack_start(self.get_bot_values_button, False, False, 0)
         url_box.pack_start(self.print_bot_values_button, False, False, 0)
-        url_box.pack_start(self.url_bar, True, True, 0)
-        url_box.pack_start(go_button, False, False, 0)
         url_box.pack_start(self.run_bot_button, False, False, 0)
         url_box.pack_start(self.stop_bot_button, False, False, 0)
         url_box.pack_start(self.create_bot_button, False, False, 0)
 
         self.pack_start(url_box, False, False, 0)
         self.pack_start(scrolled_window, True, True, 0)
-        self.pack_start(find_box, False, False, 0)
 
         url_box.show_all()
         scrolled_window.show_all()
@@ -217,48 +186,68 @@ class BrowserTab(Gtk.VBox):
         self.bot.stop()
 
     def get_fixed_rotation_x(self):
-        return self.fixedRotationX[0]   # Pitch
+        return self.fixedRotationX[0]  # Pitch
+
     def get_fixed_rotation_y(self):
         return self.fixedRotationY[0]  # Yaw
+
     def get_fixed_rotation_z(self):
         return self.fixedRotationZ[0]  # Roll
+
     def get_rate_current(self):
         return self.rateCurrent[0]  # Velocity
+
     def get_rate_rotation_x(self):
         return self.rateRotationX[0]  # Pitch Speed
+
     def get_rate_rotation_y(self):
         return self.rateRotationY[0]  # Yaw Speed
+
     def get_rate_rotation_z(self):
         return self.rateRotationZ[0]  # Roll Speed
+
     def get_translation_x(self):
         return self.x[0]  # camera.position.z - issObject.position.z      # X
+
     def get_translation_z(self):
         return self.z[0]  # camera.position.y - issObject.position.y      # Z
+
     def get_translation_y(self):
         return self.y[0]  # camera.position.x - issObject.position.x      # Y
 
     def pitch_down(self):
         self.execute_javascript(self.pitchDown_javascript)
+
     def pitch_up(self):
         self.execute_javascript(self.pitchUp_javascript)
+
     def translate_up(self):
         self.execute_javascript(self.translateUp_javascript)
+
     def translate_down(self):
         self.execute_javascript(self.translateDown_javascript)
+
     def translate_backward(self):
         self.execute_javascript(self.translateBackward_javascript)
+
     def translate_forward(self):
         self.execute_javascript(self.translateForward_javascript)
+
     def translate_left(self):
         self.execute_javascript(self.translateLeft_javascript)
+
     def translate_right(self):
         self.execute_javascript(self.translateRight_javascript)
+
     def roll_left(self):
         self.execute_javascript(self.rollLeft_javascript)
+
     def roll_right(self):
         self.execute_javascript(self.rollRight_javascript)
+
     def yaw_left(self):
         self.execute_javascript(self.yawLeft_javascript)
+
     def yaw_right(self):
         self.execute_javascript(self.yawRight_javascript)
 
@@ -294,14 +283,15 @@ class BrowserTab(Gtk.VBox):
         """Execute the javascript in our webview."""
         self.webview.run_javascript(command, None)
 
-    def _load_url(self, widget):
-        url = self.url_bar.get_text()
-        if not "://" in url:
-            url = "http://" + url
-        self.webview.load_uri(url)
-
 
 class Browser(Gtk.Window):
+    """Part of original code lift,
+
+    @@TODO: needs to be rewritten.
+
+    Create browser tabs based on the known implementations available, currently it is only the iss-sim.
+
+    """
     def __init__(self, *args, **kwargs):
         super(Browser, self).__init__(*args, **kwargs)
 
@@ -314,7 +304,7 @@ class Browser(Gtk.Window):
         self.set_size_request(1000, 1000)
 
         # create a first, empty browser tab
-        self.tabs.append((self._create_tab(), Gtk.Label("New Tab")))
+        self.tabs.append((ISSSimTab(), Gtk.Label("SpaceX ISS-SIM")))
         self.notebook.append_page(*self.tabs[0])
         self.add(self.notebook)
 
@@ -346,8 +336,7 @@ class Browser(Gtk.Window):
             counter += 1
 
     def _create_tab(self):
-        tab = BrowserTab()
-        # tab.webview.connect("title-changed", self._title_changed)
+        tab = ISSSimTab()
         return tab
 
     def _reload_tab(self):
