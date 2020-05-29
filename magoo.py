@@ -82,13 +82,12 @@ class DumbBot:
         self.thread_handle.daemon = True
         self.browser_window = browser_window
         self.bot_string = self.browser_window.bot_script
-        print(f'new bot_string: {self.bot_string}')
 
     def main_thread(self):
-        if bot_string is None:
+        if self.bot_string is None:
             return
         try:
-            exec(bot_string)
+            exec(self.bot_string)
         except Exception as e:
             print(f'Bot Script Error  {e}')
         print("main thread done")
