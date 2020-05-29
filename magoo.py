@@ -15,82 +15,83 @@ import time
 import threading
 
 import gi
+from enum import Enum
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('WebKit2', '4.0')
 from gi.repository import Gtk, GLib, Gdk, WebKit2
 
+bot_string = """
+self.run_bot = True
 
-# rateCurrent
-# rateRotationX     # Pitch Speed
-# rateRotationY     # Yaw Speed
-# rateRotationZ     # Roll Speed
-# fixedRotationX    # Pitch
-# fixedRotationY    # Yaw
-# fixedRotationZ    # Roll
-# rateCurrent       # Velocity
-# camera.position.z - issObject.position.z      # X
-# camera.position.x - issObject.position.x      # Y
-# camera.position.y - issObject.position.y      # Z
+translation_tick = 0
+translation_tick_slice = 100
+orientation_tick = 0
+orientation_tick_slice = 50
+
+print("Starting Bot")
+while self.run_bot:
+    GLib.idle_add(self.browser_window.refresh_exposed_values)
+    if orientation_tick % orientation_tick_slice == 0:
+        # Pitch
+        if self.browser_window.get_value("fixedRotationX") > 0 and self.browser_window.get_value("rateRotationX") < (
+                min(abs(self.browser_window.get_value("fixedRotationX")), 1) * 2):
+            self.browser_window.execute_command("pitchDown")
+        if self.browser_window.get_value("fixedRotationX") < 0 and self.browser_window.get_value("rateRotationX") > (
+                min(abs(self.browser_window.get_value("fixedRotationX")), 1) * -2):
+            self.browser_window.execute_command("pitchUp")
+        # Yaw
+        if self.browser_window.get_value("fixedRotationY") > 0 and self.browser_window.get_value("rateRotationY") < (
+                min(abs(self.browser_window.get_value("fixedRotationY")), 1) * 2):
+            self.browser_window.execute_command("yawRight")
+        if self.browser_window.get_value("fixedRotationY") < 0 and self.browser_window.get_value("rateRotationY") > (
+                min(abs(self.browser_window.get_value("fixedRotationY")), 1) * -2):
+            self.browser_window.execute_command("yawLeft")
+        # Roll
+        if self.browser_window.get_value("fixedRotationY") > 0 and self.browser_window.get_value("rateRotationZ") < (
+                min(abs(self.browser_window.get_value("fixedRotationZ")), 1) * 2):
+            self.browser_window.execute_command("rollRight")
+        if self.browser_window.get_value("fixedRotationZ") < 0 and self.browser_window.get_value("rateRotationZ") > (
+                min(abs(self.browser_window.get_value("fixedRotationZ")), 1) * -2):
+            self.browser_window.execute_command("rollLeft")
+
+    if translation_tick % translation_tick_slice == 0:
+        # Translate X
+        if self.browser_window.get_value("positionY") < 0:
+            self.browser_window.execute_command("translateRight")
+        if self.browser_window.get_value("positionY") > 0:
+            self.browser_window.execute_command("translateLeft")
+        # Translate Z
+        if self.browser_window.get_value("positionZ") < 0:
+            self.browser_window.execute_command("translateUp")
+        if self.browser_window.get_value("positionZ") > 0:
+            self.browser_window.execute_command("translateDown")
+
+    orientation_tick += 1
+    translation_tick += 1
+    time.sleep(0.01)
+print("Bot Loop Stopped.")"""
+
 
 class DumbBot:
     """A very very dumb bot to pilot the craft.  Do not trust it."""
+
     def __init__(self, browser_window):
         self.run_bot = False
         self.thread_handle = threading.Thread(target=self.main_thread)
         self.thread_handle.daemon = True
         self.browser_window = browser_window
+        self.bot_string = self.browser_window.bot_script
+        print(f'new bot_string: {self.bot_string}')
 
     def main_thread(self):
-        self.run_bot = True
-
-        translation_tick = 0
-        translation_tick_slice = 100
-        orientation_tick = 0
-        orientation_tick_slice = 50
-
-        print("Starting Bot")
-        while self.run_bot:
-            GLib.idle_add(self.browser_window.query_craft_values)
-            if orientation_tick % orientation_tick_slice == 0:
-                # Pitch
-                if self.browser_window.get_fixed_rotation_x() > 0 and self.browser_window.get_rate_rotation_x() < (
-                        min(abs(self.browser_window.get_fixed_rotation_x()), 1) * 2):
-                    GLib.idle_add(self.browser_window.pitch_down)
-                if self.browser_window.get_fixed_rotation_x() < 0 and self.browser_window.get_rate_rotation_x() > (
-                        min(abs(self.browser_window.get_fixed_rotation_x()), 1) * -2):
-                    GLib.idle_add(self.browser_window.pitch_up)
-                # Yaw
-                if self.browser_window.get_fixed_rotation_y() > 0 and self.browser_window.get_rate_rotation_y() < (
-                        min(abs(self.browser_window.get_fixed_rotation_y()), 1) * 2):
-                    GLib.idle_add(self.browser_window.yaw_right)
-                if self.browser_window.get_fixed_rotation_y() < 0 and self.browser_window.get_rate_rotation_y() > (
-                        min(abs(self.browser_window.get_fixed_rotation_y()), 1) * -2):
-                    GLib.idle_add(self.browser_window.yaw_left)
-                # Roll
-                if self.browser_window.get_fixed_rotation_z() > 0 and self.browser_window.get_rate_rotation_z() < (
-                        min(abs(self.browser_window.get_fixed_rotation_z()), 1) * 2):
-                    GLib.idle_add(self.browser_window.roll_right)
-                if self.browser_window.get_fixed_rotation_z() < 0 and self.browser_window.get_rate_rotation_z()> (
-                        min(abs(self.browser_window.get_fixed_rotation_z()), 1) * -2):
-                    GLib.idle_add(self.browser_window.roll_left)
-
-            if translation_tick % translation_tick_slice == 0:
-                # Translate X
-                if self.browser_window.get_translation_y() < 0:
-                    GLib.idle_add(self.browser_window.translate_right)
-                if self.browser_window.get_translation_y() > 0:
-                    GLib.idle_add(self.browser_window.translate_left)
-                # Translate Z
-                if self.browser_window.get_translation_z() < 0:
-                    GLib.idle_add(self.browser_window.translate_up)
-                if self.browser_window.get_translation_z() > 0:
-                    GLib.idle_add(self.browser_window.translate_down)
-
-            orientation_tick += 1
-            translation_tick += 1
-            time.sleep(0.01)
-        print("Bot Loop Stopped.")
+        if bot_string is None:
+            return
+        try:
+            exec(bot_string)
+        except Exception as e:
+            print(f'Bot Script Error  {e}')
+        print("main thread done")
 
     def start(self):
         self.thread_handle.start()
@@ -99,189 +100,254 @@ class DumbBot:
         self.run_bot = False
 
 
-class ISSSimTab(Gtk.VBox):
+class JavascriptType(Enum):
+    """Enum values used to assign types."""
+    DOUBLE = 1
+    STRING = 2
+
+
+class BrowserTab(Gtk.VBox):
     def __init__(self, *args, **kwargs):
-        super(ISSSimTab, self).__init__(*args, **kwargs)
+        super(BrowserTab, self).__init__(*args, **kwargs)
 
-        self.fixedRotationX = [0]  # Pitch
-        self.fixedRotationY = [0]  # Yaw
-        self.fixedRotationZ = [0]  # Roll
-        self.rateCurrent = [0]  # Velocity
-        self.rateRotationX = [0]  # Pitch Speed
-        self.rateRotationY = [0]  # Yaw Speed
-        self.rateRotationZ = [0]  # Roll Speed
-        self.x = [0]  # camera.position.z - issObject.position.z      # X
-        self.z = [0]  # camera.position.y - issObject.position.y      # Z
-        self.y = [0]  # camera.position.x - issObject.position.x      # Y
-        self.rollLeft_javascript = "rollLeft()"
-        self.rollRight_javascript = "rollRight()"
-        self.pitchDown_javascript = "pitchDown()"
-        self.pitchUp_javascript = "pitchUp()"
-        self.yawLeft_javascript = "yawLeft()"
-        self.yawRight_javascript = "yawRight()"
-        self.translateForward_javascript = "translateForward()"
-        self.translateBackward_javascript = "translateBackward()"
-        self.translateDown_javascript = "translateDown()"
-        self.translateUp_javascript = "translateUp()"
-        self.translateRight_javascript = "translateRight()"
-        self.translateLeft_javascript = "translateLeft()"
-        self.bot = DumbBot(self)
-
+        #  This bots window
         self.webview = WebKit2.WebView()
-        self.show()
-
-        self.get_bot_values_button = Gtk.Button.new_with_label("Get Bot Values")
-        self.get_bot_values_button.connect("clicked", lambda x: self.query_craft_values())
-        self.print_bot_values_button = Gtk.Button.new_with_label("Print Bot Values")
-        self.print_bot_values_button.connect("clicked", lambda x: self.print_craft_values())
-        self.run_bot_button = Gtk.Button.new_with_label("Run Bot")
-        self.stop_bot_button = Gtk.Button.new_with_label("Stop Bot")
-        self.create_bot_button = Gtk.Button.new_with_label("Create Bot")
-        self.run_bot_button.connect("clicked", lambda x: self.start_bot())
-        self.stop_bot_button.connect("clicked", lambda x: self.stop_bot())
-        self.create_bot_button.connect("clicked", lambda x: self.create_bot())
-
         scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.add(self.webview)
 
+        #  Buttons
+        self.show_exposed_values_button = Gtk.Button.new_with_label("Exposed Values")
+        self.show_exposed_values_button.connect("clicked", lambda x: self.show_exposed_values())
+        self.run_bot_button = Gtk.Button.new_with_label("Run Bot")
+        self.run_bot_button.connect("clicked", lambda x: self.start_bot())
+        self.stop_bot_button = Gtk.Button.new_with_label("Stop Bot")
+        self.stop_bot_button.connect("clicked", lambda x: self.stop_bot())
+        self.edit_bot_button = Gtk.Button.new_with_label("Edit Bot")
+        self.edit_bot_button.connect("clicked", lambda x: self.edit_bot())
+        #  Button Container
         url_box = Gtk.HBox()
-        url_box.pack_start(self.get_bot_values_button, False, False, 0)
-        url_box.pack_start(self.print_bot_values_button, False, False, 0)
+        url_box.pack_start(self.show_exposed_values_button, False, False, 0)
         url_box.pack_start(self.run_bot_button, False, False, 0)
         url_box.pack_start(self.stop_bot_button, False, False, 0)
-        url_box.pack_start(self.create_bot_button, False, False, 0)
+        url_box.pack_start(self.edit_bot_button, False, False, 0)
 
+        #  Add the container to this VBox
         self.pack_start(url_box, False, False, 0)
         self.pack_start(scrolled_window, True, True, 0)
 
         url_box.show_all()
         scrolled_window.show_all()
+        self.show()
+
         self.webview.load_uri("https://iss-sim.spacex.com/")
 
-    def print_craft_values(self):
-        print(f'rateRotationX (Pitch Speed): {self.rateRotationX[0]}')
-        print(f'rateRotationY (Yaw Speed): {self.rateRotationY[0]}')
-        print(f'rateRotationZ (Roll Speed): {self.rateRotationZ[0]}')
-        print(f'fixedRotationX (Pitch): {self.fixedRotationX[0]}')
-        print(f'fixedRotationY (Yaw):   {self.fixedRotationY[0]}')
-        print(f'fixedRotationZ (Roll):   {self.fixedRotationZ[0]}')
-        print(f'RateCurrent (Speed):   {self.rateCurrent[0]}')
-        print(f'X (Position X):   {self.x[0]}')
-        print(f'Y (Position X):   {self.y[0]}')
-        print(f'Z (Position X):   {self.z[0]}')
+        #  Declare the positions of these values.
+        self.VARTYPE = 0
+        self.VARJAVASCRIPT = 1
+        self.VARVALUE = 2
+        self.VARDESCRIPTION = 3
+        self.CMDNAME = 0
+        self.CMDJAVASCRIPT = 1
 
-    def create_bot(self):
-        if self.bot is not None:
-            self.bot.stop()
-        self.bot = DumbBot(self)
+        #  Bots edit window
+        self.edit_bot_window = None
+        #  Bots Values Window
+        self.values_window = None
+        #  Options for the interface
+        self.perform_periodic_bot_value_update = None
+        self.periodic_bot_value_update_time = 1
+        #  The bot
+        self.bot = None
+
+        #  Declare this pages exposed information
+        self.exposed_values = {
+            "rateRotationX": [JavascriptType.DOUBLE, "rateRotationX", 0, "Pitch Speed"],
+            "rateRotationY": [JavascriptType.DOUBLE, "rateRotationY", 0, "Yaw Speed"],
+            "rateRotationZ": [JavascriptType.DOUBLE, "rateRotationZ", 0, "Roll Speed"],
+            "fixedRotationX": [JavascriptType.DOUBLE, "fixedRotationX", 0, "Pitch"],
+            "fixedRotationY": [JavascriptType.DOUBLE, "fixedRotationY", 0, "Yaw"],
+            "fixedRotationZ": [JavascriptType.DOUBLE, "fixedRotationZ", 0, "Roll"],
+            "rateCurrent": [JavascriptType.DOUBLE, "rateCurrent", 0, "Speed"],
+            "positionY": [JavascriptType.DOUBLE, "camera.position.x - issObject.position.x", 0, "Position X"],
+            "positionZ": [JavascriptType.DOUBLE, "camera.position.y - issObject.position.y", 0, "Position Y"],
+            "positionX": [JavascriptType.DOUBLE, "camera.position.z - issObject.position.z", 0, "Position Z"]
+        }
+        #  Declare this pages exposed commands
+        self.exposed_commands = {
+            "rollLeft": "rollLeft()",
+            "rollRight": "rollRight()",
+            "pitchDown": "pitchDown()",
+            "pitchUp": "pitchUp()",
+            "yawLeft": "yawLeft()",
+            "yawRight": "yawRight()",
+            "translateForward": "translateForward()",
+            "translateBackward": "translateBackward()",
+            "translateDown": "translateDown()",
+            "translateUp": "translateUp()",
+            "translateRight": "translateRight()",
+            "translateLeft": "translateLeft()"
+        }
+        self.bot_script = bot_string
+
+    def execute_command(self, command):
+        """Execute one of the available bot_commands as page javascript.
+        """
+        if command in self.exposed_commands:
+            GLib.idle_add(self.execute_javascript, self.exposed_commands[command])
+        else:
+            print(f'User Command: {command} not available.')
+
+    def show_exposed_values(self):
+        """Create the page values window.
+        """
+        if self.values_window is not None:
+            self.values_window.perform_periodic_value_update = False
+            self.values_window.destroy()
+        self.values_window = ValuesWindow(self)
+        self.values_window.show()
+        self.values_window.periodic_value_update()
+
+    def disable_exposed_value_update(self):
+        """Set the periodic timer to false
+        """
+        self.perform_periodic_bot_value_update = False
+
+    def get_exposed_value_display_buffer(self):
+        buffer_text = ""
+        for var in self.exposed_values:
+            buffer_text += f'{var:20} ({self.exposed_values[var][self.VARDESCRIPTION]}): {self.exposed_values[var][self.VARVALUE]:5}\n'
+        return buffer_text
+
+    def periodic_exposed_value_update(self):
+        """Initialize exposed values on a periodic bases.
+        """
+
+    def edit_bot(self):
+        """Create the edit bot window.
+        """
+        if self.edit_bot_window is not None:
+            self.edit_bot_window.destroy()
+        self.edit_bot_window = EditBotWindow(self)
+        self.edit_bot_window.show()
+        pass
+
+    def update_bot_string_contents(self):
+        if self.edit_bot_window is not None:
+            self.bot_script = self.edit_bot_window.get_bot_script()
 
     def start_bot(self):
-        if self.bot is None:
-            return
+        """Create and run the bot
+        """
+        self.update_bot_string_contents()
+        if self.bot is not None:
+            self.bot.stop()
+            self.bot.thread_handle.join(0.1)
+        self.bot = DumbBot(self)
         self.bot.start()
 
     def stop_bot(self):
+        """Stop the bot
+        """
         if self.bot is None:
             return
         self.bot.stop()
 
-    def get_fixed_rotation_x(self):
-        return self.fixedRotationX[0]  # Pitch
+    def get_value(self, value_string):
+        """Retrieve one of the exposed values.
+        """
+        if value_string in self.exposed_values:
+            return self.exposed_values[value_string][self.VARVALUE]
+        return f'{value_string} is an unknown variable'
 
-    def get_fixed_rotation_y(self):
-        return self.fixedRotationY[0]  # Yaw
+    def get_value_callback(self, javascript_type):
+        """Callback that will assign the queried value to the exposed value storage object.
+        """
+        if javascript_type == JavascriptType.DOUBLE:
+            return self.set_double_callback
+        if javascript_type == JavascriptType.STRING:
+            return self.set_string_callback
 
-    def get_fixed_rotation_z(self):
-        return self.fixedRotationZ[0]  # Roll
+    def refresh_exposed_values(self):
+        """Refresh all the exposed values values from the page
+        """
+        for var in self.exposed_values:
+            self.webview.run_javascript(f'({self.exposed_values[var][self.VARJAVASCRIPT]}).toString()', None,
+                                        self.get_value_callback(self.exposed_values[var][self.VARTYPE]), var)
 
-    def get_rate_current(self):
-        return self.rateCurrent[0]  # Velocity
-
-    def get_rate_rotation_x(self):
-        return self.rateRotationX[0]  # Pitch Speed
-
-    def get_rate_rotation_y(self):
-        return self.rateRotationY[0]  # Yaw Speed
-
-    def get_rate_rotation_z(self):
-        return self.rateRotationZ[0]  # Roll Speed
-
-    def get_translation_x(self):
-        return self.x[0]  # camera.position.z - issObject.position.z      # X
-
-    def get_translation_z(self):
-        return self.z[0]  # camera.position.y - issObject.position.y      # Z
-
-    def get_translation_y(self):
-        return self.y[0]  # camera.position.x - issObject.position.x      # Y
-
-    def pitch_down(self):
-        self.execute_javascript(self.pitchDown_javascript)
-
-    def pitch_up(self):
-        self.execute_javascript(self.pitchUp_javascript)
-
-    def translate_up(self):
-        self.execute_javascript(self.translateUp_javascript)
-
-    def translate_down(self):
-        self.execute_javascript(self.translateDown_javascript)
-
-    def translate_backward(self):
-        self.execute_javascript(self.translateBackward_javascript)
-
-    def translate_forward(self):
-        self.execute_javascript(self.translateForward_javascript)
-
-    def translate_left(self):
-        self.execute_javascript(self.translateLeft_javascript)
-
-    def translate_right(self):
-        self.execute_javascript(self.translateRight_javascript)
-
-    def roll_left(self):
-        self.execute_javascript(self.rollLeft_javascript)
-
-    def roll_right(self):
-        self.execute_javascript(self.rollRight_javascript)
-
-    def yaw_left(self):
-        self.execute_javascript(self.yawLeft_javascript)
-
-    def yaw_right(self):
-        self.execute_javascript(self.yawRight_javascript)
-
-    def query_craft_values(self):
-
-        # self.fixedRotationX = []     # Pitch
-        self.webview.run_javascript("rateRotationX.toString()", None, self.set_double_callback, self.rateRotationX)
-        # self.fixedRotationY = []     # Yaw
-        self.webview.run_javascript("rateRotationY.toString()", None, self.set_double_callback, self.rateRotationY)
-        # self.fixedRotationZ = []     # Roll
-        self.webview.run_javascript("rateRotationZ.toString()", None, self.set_double_callback, self.rateRotationZ)
-        self.webview.run_javascript("fixedRotationX.toString()", None, self.set_double_callback, self.fixedRotationX)
-        self.webview.run_javascript("fixedRotationY.toString()", None, self.set_double_callback, self.fixedRotationY)
-        self.webview.run_javascript("fixedRotationZ.toString()", None, self.set_double_callback, self.fixedRotationZ)
-        # self.rateCurrent = []        # Velocity
-        self.webview.run_javascript("rateCurrent.toString()", None, self.set_double_callback, self.rateCurrent)
-        # self.y = []                  # camera.position.x - issObject.position.x      # Y
-        self.webview.run_javascript("(camera.position.x - issObject.position.x).toString()", None,
-                                    self.set_double_callback, self.y)
-        # self.z = []                  # camera.position.y - issObject.position.y      # Z
-        self.webview.run_javascript("(camera.position.y - issObject.position.y).toString()", None,
-                                    self.set_double_callback, self.z)
-        # self.x = []                  # camera.position.z - issObject.position.z      # X
-        self.webview.run_javascript("(camera.position.z - issObject.position.z).toString()", None,
-                                    self.set_double_callback, self.x)
+    def set_string_callback(self, webiew, result, user_data):
+        """Callback to set the variable we just queried the value of as a string type.
+        """
+        js_result = self.webview.run_javascript_finish(result)
+        self.exposed_values[user_data][self.VARVALUE] = js_result.get_js_value().to_string()
 
     def set_double_callback(self, webview, result, user_data):
-        """Callback to set the variable we just queried the value of"""
+        """Callback to set the variable we just queried the value of as a double type
+        """
         js_result = self.webview.run_javascript_finish(result)
-        user_data[0] = js_result.get_js_value().to_double()
+        self.exposed_values[user_data][self.VARVALUE] = js_result.get_js_value().to_double()
 
     def execute_javascript(self, command):
-        """Execute the javascript in our webview."""
+        """Execute the javascript in our webview.
+        """
         self.webview.run_javascript(command, None)
+
+
+class EditBotWindow(Gtk.Window):
+    """Window to edit the bot script"""
+
+    def __init__(self, bot_window):
+        super(EditBotWindow, self).__init__()
+        self.bot_window = bot_window
+        self.buffer = Gtk.TextBuffer()
+        self.text_view = Gtk.TextView(buffer=self.buffer)
+        self.add(self.text_view)
+        self.show_all()
+        self.set_bot_script(self.bot_window.bot_script)
+
+    def set_bot_script(self, bot_text):
+        self.buffer.set_text(bot_text)
+
+    def get_bot_script(self):
+        startIter, endIter = self.buffer.get_bounds()
+        return self.buffer.get_text(startIter, endIter, False)
+
+
+class ValuesWindow(Gtk.Window):
+    """Window to show the bot values"""
+
+    def __init__(self, bot_window):
+        super(ValuesWindow, self).__init__()
+        self.bot_window = bot_window
+        # self.set_border_width(5)
+        # self.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        self.buffer = Gtk.TextBuffer()
+        self.text_view = Gtk.TextView(buffer=self.buffer)
+        self.add(self.text_view)
+        self.connect("destroy", self.cleanup)
+        self.show_all()
+
+        self.thread_handle = threading.Thread(target=self.main_thread)
+        self.thread_handle.daemon = False
+        self.perform_periodic_value_update = True
+        self.periodic_value_update_sleep_time = 1.0
+        self.thread_handle.start()
+        print("Init Donw")
+
+    def set_display(self, values):
+        print(f'New Buffer: {values}')
+        self.buffer.set_text(values)
+
+    def main_thread(self):
+        while self.perform_periodic_value_update:
+            GLib.idle_add(self.periodic_value_update)
+            time.sleep(self.periodic_value_update_sleep_time)
+
+    def periodic_value_update(self):
+        self.bot_window.refresh_exposed_values()
+        self.set_display(self.bot_window.get_exposed_value_display_buffer())
+
+    def cleanup(self):
+        self.perform_periodic_value_update = False
 
 
 class Browser(Gtk.Window):
@@ -292,6 +358,7 @@ class Browser(Gtk.Window):
     Create browser tabs based on the known implementations available, currently it is only the iss-sim.
 
     """
+
     def __init__(self, *args, **kwargs):
         super(Browser, self).__init__(*args, **kwargs)
 
@@ -304,7 +371,7 @@ class Browser(Gtk.Window):
         self.set_size_request(1000, 1000)
 
         # create a first, empty browser tab
-        self.tabs.append((ISSSimTab(), Gtk.Label("SpaceX ISS-SIM")))
+        self.tabs.append((BrowserTab(), Gtk.Label("SpaceX ISS-SIM")))
         self.notebook.append_page(*self.tabs[0])
         self.add(self.notebook)
 
@@ -336,7 +403,7 @@ class Browser(Gtk.Window):
             counter += 1
 
     def _create_tab(self):
-        tab = ISSSimTab()
+        tab = BrowserTab()
         return tab
 
     def _reload_tab(self):
