@@ -108,6 +108,7 @@ class JavascriptType(Enum):
 class BrowserTab(Gtk.VBox):
     def __init__(self, *args, **kwargs):
         super(BrowserTab, self).__init__(*args, **kwargs)
+        self.connect("destroy", self.on_destroy)
 
         #  This bots window
         self.webview = WebKit2.WebView()
@@ -116,19 +117,23 @@ class BrowserTab(Gtk.VBox):
 
         #  Buttons
         self.show_exposed_values_button = Gtk.Button.new_with_label("Exposed Values")
-        self.show_exposed_values_button.connect("clicked", lambda x: self.show_exposed_values())
+        self.show_exposed_values_button.connect("clicked", self.show_exposed_values)
         self.run_bot_button = Gtk.Button.new_with_label("Run Bot")
-        self.run_bot_button.connect("clicked", lambda x: self.start_bot())
+        self.run_bot_button.connect("clicked", self.start_bot)
         self.stop_bot_button = Gtk.Button.new_with_label("Stop Bot")
-        self.stop_bot_button.connect("clicked", lambda x: self.stop_bot())
+        self.stop_bot_button.connect("clicked", self.stop_bot)
         self.edit_bot_button = Gtk.Button.new_with_label("Edit Bot")
-        self.edit_bot_button.connect("clicked", lambda x: self.edit_bot())
+        self.edit_bot_button.connect("clicked", self.edit_bot)
+        self.reload_bot_button = Gtk.Button.new_with_label("Reload Bot Script")
+        self.reload_bot_button.connect("clicked", self.reload_bot_script)
+
         #  Button Container
         url_box = Gtk.HBox()
         url_box.pack_start(self.show_exposed_values_button, False, False, 0)
         url_box.pack_start(self.run_bot_button, False, False, 0)
         url_box.pack_start(self.stop_bot_button, False, False, 0)
         url_box.pack_start(self.edit_bot_button, False, False, 0)
+        url_box.pack_start(self.reload_bot_button, False, False, 0)
 
         #  Add the container to this VBox
         self.pack_start(url_box, False, False, 0)
@@ -186,19 +191,17 @@ class BrowserTab(Gtk.VBox):
             "translateRight": "translateRight()",
             "translateLeft": "translateLeft()"
         }
-        self.bot_script = bot_string
+        self.bot_script = str(bot_string)
 
     def execute_command(self, command):
-        """Execute one of the available bot_commands as page javascript.
-        """
+        """Execute one of the available bot_commands as page javascript."""
         if command in self.exposed_commands:
             GLib.idle_add(self.execute_javascript, self.exposed_commands[command])
         else:
             print(f'User Command: {command} not available.')
 
-    def show_exposed_values(self):
-        """Create the page values window.
-        """
+    def show_exposed_values(self, button):
+        """Create the page values window."""
         if self.values_window is not None:
             self.values_window.perform_periodic_value_update = False
             self.values_window.destroy()
@@ -206,37 +209,15 @@ class BrowserTab(Gtk.VBox):
         self.values_window.show()
         self.values_window.periodic_value_update()
 
-    def disable_exposed_value_update(self):
-        """Set the periodic timer to false
-        """
-        self.perform_periodic_bot_value_update = False
-
     def get_exposed_value_display_buffer(self):
+        """Retrieve a str of the exposed values"""
         buffer_text = ""
         for var in self.exposed_values:
             buffer_text += f'{var:20} ({self.exposed_values[var][self.VARDESCRIPTION]}): {self.exposed_values[var][self.VARVALUE]:5}\n'
         return buffer_text
 
-    def periodic_exposed_value_update(self):
-        """Initialize exposed values on a periodic bases.
-        """
-
-    def edit_bot(self):
-        """Create the edit bot window.
-        """
-        if self.edit_bot_window is not None:
-            self.edit_bot_window.destroy()
-        self.edit_bot_window = EditBotWindow(self)
-        self.edit_bot_window.show()
-        pass
-
-    def update_bot_string_contents(self):
-        if self.edit_bot_window is not None:
-            self.bot_script = self.edit_bot_window.get_bot_script()
-
-    def start_bot(self):
-        """Create and run the bot
-        """
+    def start_bot(self, button):
+        """Create and run the bot"""
         self.update_bot_string_contents()
         if self.bot is not None:
             self.bot.stop()
@@ -244,52 +225,70 @@ class BrowserTab(Gtk.VBox):
         self.bot = DumbBot(self)
         self.bot.start()
 
-    def stop_bot(self):
-        """Stop the bot
-        """
+    def stop_bot(self, button):
+        """Stop the bot"""
         if self.bot is None:
             return
         self.bot.stop()
 
+    def edit_bot(self, button):
+        """Create the edit bot window."""
+        if self.edit_bot_window is not None:
+            self.edit_bot_window.destroy()
+        self.edit_bot_window = EditBotWindow(self)
+        self.edit_bot_window.show()
+
+    def reload_bot_script(self, button):
+        """Reload the bot script from its default"""
+        self.bot_script = bot_string
+        self.edit_bot_window.set_bot_script(self.bot_script)
+
+    def update_bot_string_contents(self):
+        """Query the edit window for the updated bot contents
+        and set the running bot script to those contents."""
+        if self.edit_bot_window is not None:
+            self.bot_script = self.edit_bot_window.get_bot_script()
+
     def get_value(self, value_string):
-        """Retrieve one of the exposed values.
-        """
+        """Retrieve one of the exposed values."""
         if value_string in self.exposed_values:
             return self.exposed_values[value_string][self.VARVALUE]
         return f'{value_string} is an unknown variable'
 
     def get_value_callback(self, javascript_type):
-        """Callback that will assign the queried value to the exposed value storage object.
-        """
+        """Callback that will assign the queried value to the exposed value storage object."""
         if javascript_type == JavascriptType.DOUBLE:
             return self.set_double_callback
         if javascript_type == JavascriptType.STRING:
             return self.set_string_callback
 
     def refresh_exposed_values(self):
-        """Refresh all the exposed values values from the page
-        """
+        """Refresh all the exposed values values from the page"""
         for var in self.exposed_values:
             self.webview.run_javascript(f'({self.exposed_values[var][self.VARJAVASCRIPT]}).toString()', None,
                                         self.get_value_callback(self.exposed_values[var][self.VARTYPE]), var)
 
     def set_string_callback(self, webiew, result, user_data):
-        """Callback to set the variable we just queried the value of as a string type.
-        """
+        """Callback to set the variable we just queried the value of as a string type."""
         js_result = self.webview.run_javascript_finish(result)
         self.exposed_values[user_data][self.VARVALUE] = js_result.get_js_value().to_string()
 
     def set_double_callback(self, webview, result, user_data):
-        """Callback to set the variable we just queried the value of as a double type
-        """
+        """Callback to set the variable we just queried the value of as a double type"""
         js_result = self.webview.run_javascript_finish(result)
         self.exposed_values[user_data][self.VARVALUE] = js_result.get_js_value().to_double()
 
     def execute_javascript(self, command):
-        """Execute the javascript in our webview.
-        """
+        """Execute the javascript in our webview."""
         self.webview.run_javascript(command, None)
 
+    def on_destroy(self, event):
+        if self.bot is not None:
+            self.bot.stop()
+        if self.edit_bot_window is not None:
+            self.edit_bot_window.destroy()
+        if self.values_window is not None:
+            self.values_window.destroy()
 
 class EditBotWindow(Gtk.Window):
     """Window to edit the bot script"""
@@ -300,6 +299,8 @@ class EditBotWindow(Gtk.Window):
         self.buffer = Gtk.TextBuffer()
         self.text_view = Gtk.TextView(buffer=self.buffer)
         self.add(self.text_view)
+        self.set_title("Edit Bot")
+        self.connect("destroy", self.on_destroy)
         self.show_all()
         self.set_bot_script(self.bot_window.bot_script)
 
@@ -310,6 +311,8 @@ class EditBotWindow(Gtk.Window):
         startIter, endIter = self.buffer.get_bounds()
         return self.buffer.get_text(startIter, endIter, False)
 
+    def on_destroy(self, event):
+        event.destroy()
 
 class ValuesWindow(Gtk.Window):
     """Window to show the bot values"""
@@ -322,7 +325,8 @@ class ValuesWindow(Gtk.Window):
         self.buffer = Gtk.TextBuffer()
         self.text_view = Gtk.TextView(buffer=self.buffer)
         self.add(self.text_view)
-        self.connect("destroy", self.cleanup)
+        self.set_title("Exposed Values")
+        self.destroy_with_parent = True
         self.show_all()
 
         self.thread_handle = threading.Thread(target=self.main_thread)
@@ -330,7 +334,6 @@ class ValuesWindow(Gtk.Window):
         self.perform_periodic_value_update = True
         self.periodic_value_update_sleep_time = 1.0
         self.thread_handle.start()
-        print("Init Donw")
 
     def set_display(self, values):
         print(f'New Buffer: {values}')
@@ -344,9 +347,6 @@ class ValuesWindow(Gtk.Window):
     def periodic_value_update(self):
         self.bot_window.refresh_exposed_values()
         self.set_display(self.bot_window.get_exposed_value_display_buffer())
-
-    def cleanup(self):
-        self.perform_periodic_value_update = False
 
 
 class Browser(Gtk.Window):
