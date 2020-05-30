@@ -22,8 +22,6 @@ gi.require_version('WebKit2', '4.0')
 from gi.repository import Gtk, GLib, Gdk, WebKit2
 
 bot_string = """
-self.run_bot = True
-
 translation_tick = 0
 translation_tick_slice = 100
 orientation_tick = 0
@@ -87,6 +85,7 @@ class DumbBot:
         if self.bot_string is None:
             return
         try:
+            self.run_bot = True
             exec(self.bot_string)
         except Exception as e:
             print(f'Bot Script Error  {e}')
@@ -191,6 +190,7 @@ class BrowserTab(Gtk.VBox):
             "translateRight": "translateRight()",
             "translateLeft": "translateLeft()"
         }
+
         self.bot_script = str(bot_string)
 
     def execute_command(self, command):
@@ -290,6 +290,7 @@ class BrowserTab(Gtk.VBox):
         if self.values_window is not None:
             self.values_window.destroy()
 
+
 class EditBotWindow(Gtk.Window):
     """Window to edit the bot script"""
 
@@ -300,7 +301,6 @@ class EditBotWindow(Gtk.Window):
         self.text_view = Gtk.TextView(buffer=self.buffer)
         self.add(self.text_view)
         self.set_title("Edit Bot")
-        self.connect("destroy", self.on_destroy)
         self.show_all()
         self.set_bot_script(self.bot_window.bot_script)
 
@@ -311,8 +311,6 @@ class EditBotWindow(Gtk.Window):
         startIter, endIter = self.buffer.get_bounds()
         return self.buffer.get_text(startIter, endIter, False)
 
-    def on_destroy(self, event):
-        event.destroy()
 
 class ValuesWindow(Gtk.Window):
     """Window to show the bot values"""
@@ -326,20 +324,21 @@ class ValuesWindow(Gtk.Window):
         self.text_view = Gtk.TextView(buffer=self.buffer)
         self.add(self.text_view)
         self.set_title("Exposed Values")
-        self.destroy_with_parent = True
         self.show_all()
 
         self.thread_handle = threading.Thread(target=self.main_thread)
-        self.thread_handle.daemon = False
+        self.thread_handle.daemon = True
         self.perform_periodic_value_update = True
         self.periodic_value_update_sleep_time = 1.0
         self.thread_handle.start()
 
     def set_display(self, values):
+        """Update the text display with these values"""
         print(f'New Buffer: {values}')
         self.buffer.set_text(values)
 
     def main_thread(self):
+        """Run the main query thread to request an updated display text"""
         while self.perform_periodic_value_update:
             GLib.idle_add(self.periodic_value_update)
             time.sleep(self.periodic_value_update_sleep_time)
