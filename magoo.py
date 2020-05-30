@@ -29,7 +29,6 @@ orientation_tick_slice = 50
 
 print("Starting Bot")
 while self.run_bot:
-    GLib.idle_add(self.browser_window.refresh_exposed_values)
     if orientation_tick % orientation_tick_slice == 0:
         # Pitch
         if self.browser_window.get_value("fixedRotationX") > 0 and self.browser_window.get_value("rateRotationX") < (
@@ -190,8 +189,19 @@ class BrowserTab(Gtk.VBox):
             "translateRight": "translateRight()",
             "translateLeft": "translateLeft()"
         }
+        self.exposed_values_update_thread_handle = threading.Thread(target=self.exposed_values_update_thread)
+        self.exposed_values_update = True
+        self.exposed_values_update_sleep_time = 0.3
+        self.exposed_values_update_thread_handle.daemon = True
+        self.exposed_values_update_thread_handle.start()
 
         self.bot_script = str(bot_string)
+
+    def exposed_values_update_thread(self):
+        """Thread that will periodically query the loaded page for the exposed values"""
+        while self.exposed_values_update:
+            GLib.idle_add(self.refresh_exposed_values)
+            time.sleep(self.exposed_values_update_sleep_time)
 
     def execute_command(self, command):
         """Execute one of the available bot_commands as page javascript."""
@@ -203,11 +213,9 @@ class BrowserTab(Gtk.VBox):
     def show_exposed_values(self, button):
         """Create the page values window."""
         if self.values_window is not None:
-            self.values_window.perform_periodic_value_update = False
             self.values_window.destroy()
         self.values_window = ValuesWindow(self)
         self.values_window.show()
-        self.values_window.periodic_value_update()
 
     def get_exposed_value_display_buffer(self):
         """Retrieve a str of the exposed values"""
@@ -283,13 +291,13 @@ class BrowserTab(Gtk.VBox):
         self.webview.run_javascript(command, None)
 
     def on_destroy(self, event):
+        self.exposed_values_update = False
         if self.bot is not None:
             self.bot.stop()
         if self.edit_bot_window is not None:
             self.edit_bot_window.destroy()
         if self.values_window is not None:
             self.values_window.destroy()
-
 
 class EditBotWindow(Gtk.Window):
     """Window to edit the bot script"""
@@ -334,7 +342,6 @@ class ValuesWindow(Gtk.Window):
 
     def set_display(self, values):
         """Update the text display with these values"""
-        print(f'New Buffer: {values}')
         self.buffer.set_text(values)
 
     def main_thread(self):
@@ -344,7 +351,7 @@ class ValuesWindow(Gtk.Window):
             time.sleep(self.periodic_value_update_sleep_time)
 
     def periodic_value_update(self):
-        self.bot_window.refresh_exposed_values()
+        """Update our display text with the current exposed values"""
         self.set_display(self.bot_window.get_exposed_value_display_buffer())
 
 
