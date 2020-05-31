@@ -13,7 +13,10 @@ Popup window with the current exposed values\
 Edit your script in your favorite text editor\
 Copy and paste your script into the 'Edit script' window\
 Click run bot to load your newly pasted script.\
-Any errors in the script will be printed to stdout. 
+Any errors in the script will be printed to stdout.
+
+ScreenShot
+![header image](https://raw.github.com/thegreatpissant/magoo/ScreenShots/ISS-SIM-Screenshot-scaled.jpg)
 
 
 `python -m venv venv`
