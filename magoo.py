@@ -84,9 +84,9 @@ while self.run_bot:
         if predicted_z < target_z:
             self.browser_window.execute_command("translateUp")
         if predicted_x > target_x:      
-            self.browser_window.execute_command("translateBackward")
-        if predicted_x < target_x:
             self.browser_window.execute_command("translateForward")
+        if predicted_x < target_x:
+            self.browser_window.execute_command("translateBackward")
     #  Time delay
     prev_time = current_time
     prev_y = current_y
