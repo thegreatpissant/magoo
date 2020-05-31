@@ -6,9 +6,14 @@ A way to automate interaction with a web page.
 
 This example currently only pilots the SpaceX iss-sim, https://iss-sim.spacex.com/
 
-Edit window for your bot script\
+Edit window for your bot script
 Includes live reload of the bot script (hit start bot)\
 Popup window with the current exposed values\
+
+Edit your script in your favorite text editor\
+Copy and paste your script into the 'Edit script' window\
+Click run bot to load your newly pasted script.\
+Any errors in the script will be printed to stdout. 
 
 
 `python -m venv venv`
