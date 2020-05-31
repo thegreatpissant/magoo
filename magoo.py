@@ -22,6 +22,7 @@ gi.require_version('WebKit2', '4.0')
 from gi.repository import Gtk, GLib, Gdk, WebKit2
 
 bot_string = """
+
 #  Adjust with new vars.
 translation_tick = 0
 translation_tick_slice = 100
@@ -75,17 +76,17 @@ while self.run_bot:
     predicted_z = current_z + (current_z_speed * tick_slice)
     predicted_x = current_x + (current_x_speed * tick_slice)
     if translation_tick % translation_tick_slice == 0:
-        if predicted_y > target_y:
+        if predicted_y > target_y and abs(current_y_speed) < .2:
             self.browser_window.execute_command("translateLeft")
-        if predicted_y < target_y:
+        if predicted_y < target_y and abs(current_y_speed) < .2:
             self.browser_window.execute_command("translateRight")
-        if predicted_z > target_z:
+        if predicted_z > target_z and abs(current_z_speed) < .2:
             self.browser_window.execute_command("translateDown")
-        if predicted_z < target_z:
+        if predicted_z < target_z and abs(current_z_speed) < .2:
             self.browser_window.execute_command("translateUp")
-        if predicted_x > target_x:      
+        if predicted_x > target_x and abs(current_x_speed) < 2:      
             self.browser_window.execute_command("translateForward")
-        if predicted_x < target_x:
+        if predicted_x < target_x and abs(current_x_speed) < 2:
             self.browser_window.execute_command("translateBackward")
     #  Time delay
     prev_time = current_time
