@@ -22,6 +22,7 @@ gi.require_version('WebKit2', '4.0')
 from gi.repository import Gtk, GLib, Gdk, WebKit2
 
 bot_string = """
+#  Edit the following in you favorite text editor, then paste back
 
 #  Adjust with new vars.
 translation_tick = 0
@@ -152,7 +153,7 @@ class BrowserTab(Gtk.VBox):
         self.stop_bot_button.connect("clicked", self.stop_bot)
         self.edit_bot_button = Gtk.Button.new_with_label("Edit Bot")
         self.edit_bot_button.connect("clicked", self.edit_bot)
-        self.reload_bot_button = Gtk.Button.new_with_label("Reload Bot Script")
+        self.reload_bot_button = Gtk.Button.new_with_label("Reset Bot Script")
         self.reload_bot_button.connect("clicked", self.reload_bot_script)
 
         #  Button Container
@@ -334,10 +335,15 @@ class EditBotWindow(Gtk.Window):
 
     def __init__(self, bot_window):
         super(EditBotWindow, self).__init__()
+        self.set_default_size(800, 850)
         self.bot_window = bot_window
+        scrolled_window = Gtk.ScrolledWindow()
+        scrolled_window.set_border_width(5)
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.buffer = Gtk.TextBuffer()
         self.text_view = Gtk.TextView(buffer=self.buffer)
-        self.add(self.text_view)
+        scrolled_window.add(self.text_view)
+        self.add(scrolled_window)
         self.set_title("Edit Bot")
         self.show_all()
         self.set_bot_script(self.bot_window.bot_script)
