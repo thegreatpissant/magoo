@@ -158,11 +158,11 @@ class BrowserTab(Gtk.VBox):
 
         #  Button Container
         url_box = Gtk.HBox()
-        url_box.pack_start(self.show_exposed_values_button, False, False, 0)
         url_box.pack_start(self.run_bot_button, False, False, 0)
         url_box.pack_start(self.stop_bot_button, False, False, 0)
         url_box.pack_start(self.edit_bot_button, False, False, 0)
         url_box.pack_start(self.reload_bot_button, False, False, 0)
+        url_box.pack_start(self.show_exposed_values_button, False, False, 0)
 
         #  Add the container to this VBox
         self.pack_start(url_box, False, False, 0)
