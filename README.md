@@ -2,9 +2,9 @@ Magoo
 
 *work in progress*
 
-A way to automate interaction with a web page.
+A way to automate interaction with the SpaceX iss-sim, https://iss-sim.spacex.com/
 
-This example currently only pilots the SpaceX iss-sim, https://iss-sim.spacex.com/
+[Presentation](https://docs.google.com/presentation/d/1SEM1Wzo29rqZ_46FMFVWdpJXtDILr_dGUZm6sI2JpxM/edit?usp=sharing) I created for this application.
 
 Edit window for your bot script
 Includes live reload of the bot script (hit start bot)\
