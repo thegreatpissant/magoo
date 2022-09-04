@@ -309,13 +309,21 @@ class BrowserTab(Gtk.VBox):
 
     def set_string_callback(self, webiew, result, user_data):
         """Callback to set the variable we just queried the value of as a string type."""
-        js_result = self.webview.run_javascript_finish(result)
-        self.exposed_values[user_data][self.VARVALUE] = js_result.get_js_value().to_string()
+        try:
+            js_result = self.webview.run_javascript_finish(result)
+            value = js_result.get_js_value().to_string()
+        except GLib.GError as ge:
+            value = "<unknown>"
+        self.exposed_values[user_data][self.VARVALUE] = value
 
     def set_double_callback(self, webview, result, user_data):
         """Callback to set the variable we just queried the value of as a double type"""
-        js_result = self.webview.run_javascript_finish(result)
-        self.exposed_values[user_data][self.VARVALUE] = js_result.get_js_value().to_double()
+        try:
+            js_result = self.webview.run_javascript_finish(result)
+            value = js_result.get_js_value().to_double()
+        except GLib.GError as ge:
+            value = "<unknown>"
+        self.exposed_values[user_data][self.VARVALUE] = value
 
     def execute_javascript(self, command):
         """Execute the javascript in our webview."""
@@ -330,9 +338,9 @@ class BrowserTab(Gtk.VBox):
         if self.values_window is not None:
             self.values_window.destroy()
 
+
 class EditBotWindow(Gtk.Window):
     """Window to edit the bot script"""
-
     def __init__(self, bot_window):
         super(EditBotWindow, self).__init__()
         self.set_default_size(800, 850)
@@ -412,7 +420,7 @@ class Browser(Gtk.Window):
         self.set_size_request(1000, 1000)
 
         # create a first, empty browser tab
-        self.tabs.append((BrowserTab(), Gtk.Label("SpaceX ISS-SIM")))
+        self.tabs.append((BrowserTab(), Gtk.Label(label="SpaceX ISS-SIM")))
         self.notebook.append_page(*self.tabs[0])
         self.add(self.notebook)
 
