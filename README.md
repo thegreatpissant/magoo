@@ -51,3 +51,7 @@ References:
 - [GTK Docs](https://python-gtk-3-tutorial.readthedocs.io/)
 - [GTK pgi-docs Gdk 3.0](https://lazka.github.io/pgi-docs/Gdk-3.0/index.html)
 - [Oh its just so simple...](https://riptutorial.com/gtk3/example/16426/simple-binding-to-a-widget-s-key-press-event)
+
+Packages I needed to install on debian
+
+`sudo apt-get install libcairo2-dev libgirepository1.0-dev libgtk-3-0 libgtk-3-0-dev libgtk3.0-cil libgtk3.0-cil-dev python3-gi gobject-introspection gir1.2-gtk-3.0 gir1.2-webkit2-4.0 libwebkit2gtk-4.0-37 libwebkit2gtk-4.0-dev webkit2gtk-driver libwebkit2gtk-4.0-doc`
