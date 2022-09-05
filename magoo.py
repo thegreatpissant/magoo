@@ -10,6 +10,7 @@ I think the framework for the web application originated from https://gist.githu
 
 The intent is to generalize this automation to other webpages.
 """
+import pathlib
 import sys
 import time
 import threading
@@ -21,111 +22,46 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('WebKit2', '4.0')
 from gi.repository import Gtk, GLib, Gdk, WebKit2
 
-bot_string = """
-#  Edit the following in you favorite text editor, then paste back
-
-#  Adjust with new vars.
-translation_tick = 0
-translation_tick_slice = 100
-orientation_tick = 0
-orientation_tick_slice = 50
-
-tick_slice = 1/30
-target_x = 0.0
-target_y = 0.0
-target_z = 0.0
-
-prev_time = time.perf_counter()
-prev_y = self.browser_window.get_value("positionY")
-prev_z = self.browser_window.get_value("positionZ")
-prev_x = self.browser_window.get_value("positionX")
-
-while self.run_bot:
-    if orientation_tick % orientation_tick_slice == 0: 
-        if self.browser_window.get_value("fixedRotationX") > 0 and self.browser_window.get_value("rateRotationX") < (
-                min(abs(self.browser_window.get_value("fixedRotationX")), 1) * 2):
-            self.browser_window.execute_command("pitchDown")
-        if self.browser_window.get_value("fixedRotationX") < 0 and self.browser_window.get_value("rateRotationX") > (
-                min(abs(self.browser_window.get_value("fixedRotationX")), 1) * -2):
-            self.browser_window.execute_command("pitchUp")
-        # Yaw
-        if self.browser_window.get_value("fixedRotationY") > 0 and self.browser_window.get_value("rateRotationY") < (
-                min(abs(self.browser_window.get_value("fixedRotationY")), 1) * 2):
-            self.browser_window.execute_command("yawRight")
-        if self.browser_window.get_value("fixedRotationY") < 0 and self.browser_window.get_value("rateRotationY") > (
-                min(abs(self.browser_window.get_value("fixedRotationY")), 1) * -2):
-            self.browser_window.execute_command("yawLeft")
-        # Roll
-        if self.browser_window.get_value("fixedRotationY") > 0 and self.browser_window.get_value("rateRotationZ") < (
-                min(abs(self.browser_window.get_value("fixedRotationZ")), 1) * 2):
-            self.browser_window.execute_command("rollRight")
-        if self.browser_window.get_value("fixedRotationZ") < 0 and self.browser_window.get_value("rateRotationZ") > (
-                min(abs(self.browser_window.get_value("fixedRotationZ")), 1) * -2):
-            self.browser_window.execute_command("rollLeft")
-    current_time = time.perf_counter()
-    current_y = self.browser_window.get_value("positionY")
-    current_z = self.browser_window.get_value("positionZ")
-    current_x = self.browser_window.get_value("positionX")
-    delta_time = current_time - prev_time
-    delta_y = current_y - prev_y
-    delta_z = current_z - prev_z
-    delta_x = current_x - prev_x
-    current_y_speed = delta_y / delta_time
-    current_z_speed = delta_z / delta_time
-    current_x_speed = delta_x / delta_time
-    predicted_y = current_y + (current_y_speed * tick_slice)
-    predicted_z = current_z + (current_z_speed * tick_slice)
-    predicted_x = current_x + (current_x_speed * tick_slice)
-    if translation_tick % translation_tick_slice == 0:
-        if predicted_y > target_y and abs(current_y_speed) < .2:
-            self.browser_window.execute_command("translateLeft")
-        if predicted_y < target_y and abs(current_y_speed) < .2:
-            self.browser_window.execute_command("translateRight")
-        if predicted_z > target_z and abs(current_z_speed) < .2:
-            self.browser_window.execute_command("translateDown")
-        if predicted_z < target_z and abs(current_z_speed) < .2:
-            self.browser_window.execute_command("translateUp")
-        if predicted_x > target_x and abs(current_x_speed) < 2:      
-            self.browser_window.execute_command("translateForward")
-        if predicted_x < target_x and abs(current_x_speed) < 2:
-            self.browser_window.execute_command("translateBackward")
-    #  Time delay
-    prev_time = current_time
-    prev_y = current_y
-    prev_z = current_z
-    prev_x = current_x
-    time.sleep(tick_slice -  (time.perf_counter() - current_time))
-    translation_tick += 1
-    orientation_tick += 1
-
-print("Bot Loop Stopped.")"""
-
 
 class DumbBot:
     """A very very dumb bot to pilot the craft.  Do not trust it."""
 
-    def __init__(self, browser_window):
+    def __init__(self, browser_window, bot_src='bots/dumb_bot.py'):
         self.run_bot = False
-        self.thread_handle = threading.Thread(target=self.main_thread)
-        self.thread_handle.daemon = True
+        self.thread_handle = None
         self.browser_window = browser_window
-        self.bot_string = self.browser_window.bot_script
+        self.bot_script = None
+        self.bot_src = bot_src
+        self.reset_src()
+
+    def reset_src(self):
+        with open(self.bot_src, 'r') as bot_src:
+            self.bot_script = str(''.join(bot_src))
 
     def main_thread(self):
-        if self.bot_string is None:
+        if self.bot_script is None:
             return
         try:
             self.run_bot = True
-            exec(self.bot_string)
+            exec(self.bot_script)
         except Exception as e:
             print(f'Bot Script Error  {e}')
         print("main thread done")
 
+    def thread_is_running(self):
+        return self.thread_handle is not None and self.thread_handle.is_alive()
+
     def start(self):
+        if self.thread_is_running():
+            return
+        self.thread_handle = threading.Thread(target=self.main_thread)
+        self.thread_handle.daemon = True
         self.thread_handle.start()
 
     def stop(self):
         self.run_bot = False
+        if self.thread_is_running():
+            self.thread_handle.join(0.1)
 
 
 class JavascriptType(Enum):
@@ -154,7 +90,7 @@ class BrowserTab(Gtk.VBox):
         self.edit_bot_button = Gtk.Button.new_with_label("Edit Bot")
         self.edit_bot_button.connect("clicked", self.edit_bot)
         self.reload_bot_button = Gtk.Button.new_with_label("Reset Bot Script")
-        self.reload_bot_button.connect("clicked", self.reload_bot_script)
+        self.reload_bot_button.connect("clicked", self.reset_bot_script)
 
         #  Button Container
         url_box = Gtk.HBox()
@@ -189,8 +125,12 @@ class BrowserTab(Gtk.VBox):
         #  Options for the interface
         self.perform_periodic_bot_value_update = None
         self.periodic_bot_value_update_time = 1
+        
         #  The bot
         self.bot = None
+
+        #  Setup Bot default bot
+        self.bot = DumbBot(self)
 
         #  Declare this pages exposed information
         self.exposed_values = {
@@ -226,8 +166,6 @@ class BrowserTab(Gtk.VBox):
         self.exposed_values_update_thread_handle.daemon = True
         self.exposed_values_update_thread_handle.start()
 
-        self.bot_script = str(bot_string)
-
     def exposed_values_update_thread(self):
         """Thread that will periodically query the loaded page for the exposed values"""
         while self.exposed_values_update:
@@ -257,36 +195,35 @@ class BrowserTab(Gtk.VBox):
 
     def start_bot(self, button):
         """Create and run the bot"""
+        if self.bot is None:
+            return
+        self.stop_bot()
         self.update_bot_string_contents()
-        if self.bot is not None:
-            self.bot.stop()
-            self.bot.thread_handle.join(0.1)
-        self.bot = DumbBot(self)
         self.bot.start()
 
-    def stop_bot(self, button):
+    def stop_bot(self, button=None):
         """Stop the bot"""
         if self.bot is None:
             return
         self.bot.stop()
-
+        
     def edit_bot(self, button):
         """Create the edit bot window."""
         if self.edit_bot_window is not None:
             self.edit_bot_window.destroy()
-        self.edit_bot_window = EditBotWindow(self)
+        self.edit_bot_window = EditBotWindow(self.bot)
         self.edit_bot_window.show()
 
-    def reload_bot_script(self, button):
+    def reset_bot_script(self, button):
         """Reload the bot script from its default"""
-        self.bot_script = bot_string
-        self.edit_bot_window.set_bot_script(self.bot_script)
+        self.bot.reset_src()
+        self.edit_bot_window.load_bot_script()
 
     def update_bot_string_contents(self):
         """Query the edit window for the updated bot contents
         and set the running bot script to those contents."""
         if self.edit_bot_window is not None:
-            self.bot_script = self.edit_bot_window.get_bot_script()
+            self.bot.bot_script = self.edit_bot_window.get_bot_script()
 
     def get_value(self, value_string):
         """Retrieve one of the exposed values."""
@@ -341,10 +278,12 @@ class BrowserTab(Gtk.VBox):
 
 class EditBotWindow(Gtk.Window):
     """Window to edit the bot script"""
-    def __init__(self, bot_window):
+    def __init__(self, bot):
         super(EditBotWindow, self).__init__()
+        self.connect("destroy", self.on_destroy)
+
         self.set_default_size(800, 850)
-        self.bot_window = bot_window
+        self.bot = bot
         scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_border_width(5)
         scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
@@ -354,7 +293,10 @@ class EditBotWindow(Gtk.Window):
         self.add(scrolled_window)
         self.set_title("Edit Bot")
         self.show_all()
-        self.set_bot_script(self.bot_window.bot_script)
+        self.load_bot_script()
+
+    def load_bot_script(self):
+        self.set_bot_script(self.bot.bot_script)
 
     def set_bot_script(self, bot_text):
         self.buffer.set_text(bot_text)
@@ -363,6 +305,8 @@ class EditBotWindow(Gtk.Window):
         startIter, endIter = self.buffer.get_bounds()
         return self.buffer.get_text(startIter, endIter, False)
 
+    def on_destroy(self, event):
+        self.bot.bot_script = self.get_bot_script()
 
 class ValuesWindow(Gtk.Window):
     """Window to show the bot values"""
