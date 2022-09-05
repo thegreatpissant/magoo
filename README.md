@@ -44,3 +44,10 @@ Todo:
 - ~~Expose actions for use by the bot~~
 - ~~Expose variables for use by the bot~~
 - ~~Generate a simple bot to start piloting the space craft~~
+
+References:
+
+- [Gdk keycodes](https://docs.gtk.org/gdk4/keys.html)
+- [GTK Docs](https://python-gtk-3-tutorial.readthedocs.io/)
+- [GTK pgi-docs Gdk 3.0](https://lazka.github.io/pgi-docs/Gdk-3.0/index.html)
+- [Oh its just so simple...](https://riptutorial.com/gtk3/example/16426/simple-binding-to-a-widget-s-key-press-event)
