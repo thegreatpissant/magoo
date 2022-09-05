@@ -10,6 +10,7 @@ I think the framework for the web application originated from https://gist.githu
 
 The intent is to generalize this automation to other webpages.
 """
+import ast
 import pathlib
 import sys
 import time
@@ -123,6 +124,8 @@ class BrowserTab(Gtk.VBox):
         self.edit_bot_window = None
         #  Bots Values Window
         self.values_window = None
+        #  Bots AST Window
+        self.ast_window = None
         #  Options for the interface
         # self.perform_periodic_bot_value_update = None
         # self.periodic_bot_value_update_time = 1
@@ -229,8 +232,10 @@ class BrowserTab(Gtk.VBox):
         """Create the edit bot window."""
         if self.edit_bot_window is not None:
             self.edit_bot_window.destroy()
-        self.edit_bot_window = EditBotWindow(self.bot)
+        self.edit_bot_window = EditBotWindow(self)
         self.edit_bot_window.show()
+        self.ast_window = ASTWindow(self)
+        self.ast_window.show()
 
     def reset_bot_script(self, button):
         """Reload the bot script from its default"""
@@ -301,12 +306,13 @@ class BrowserTab(Gtk.VBox):
 class EditBotWindow(Gtk.Window):
     """Window to edit the bot script"""
 
-    def __init__(self, bot):
+    def __init__(self, main_window):
         super(EditBotWindow, self).__init__()
         self.connect("destroy", self.on_destroy)
 
         self.set_default_size(800, 850)
-        self.bot = bot
+        self.main_window = main_window
+        self.bot = main_window.bot
         scrolled_window = Gtk.ScrolledWindow()
         scrolled_window.set_border_width(5)
         scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
@@ -342,12 +348,35 @@ class EditBotWindow(Gtk.Window):
         if self.control_event and event.keyval == Gdk.KEY_Return:
             print("Enter")
             print("Got the CTRL-Enter")
+            self.main_window.ast_window.load_bot_ast(self.get_bot_script())
 
     def on_keyrelease(self, widget, event):
         print("KeyRelease")
         if event.keyval == Gdk.KEY_Control_R:
             print("Ctrl")
             self.control_event = False
+
+class ASTWindow(Gtk.Window):
+    """Show the current AST
+    """
+    def __init__(self, main_window):
+        super(ASTWindow, self).__init__()
+        
+        self.set_default_size(800, 850)
+        self.main_window = main_window
+        scrolled_window = Gtk.ScrolledWindow()
+        scrolled_window.set_border_width(5)
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        self.buffer = Gtk.TextBuffer()
+        self.text_view = Gtk.TextView(buffer=self.buffer)
+        scrolled_window.add(self.text_view)
+        self.add(scrolled_window)
+        self.set_title("AST Window")
+        self.show_all()
+    
+    def load_bot_ast(self, bot_script):
+        ast_parse = ast.parse(bot_script)
+        self.buffer.set_text(ast.dump(ast_parse, indent=4))
 
 
 class ValuesWindow(Gtk.Window):
