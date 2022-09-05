@@ -18,15 +18,15 @@ import threading
 import gi
 from enum import Enum
 
-gi.require_version('Gtk', '3.0')
-gi.require_version('WebKit2', '4.0')
+gi.require_version("Gtk", "3.0")
+gi.require_version("WebKit2", "4.0")
 from gi.repository import Gtk, GLib, Gdk, WebKit2
 
 
 class DumbBot:
     """A very very dumb bot to pilot the craft.  Do not trust it."""
 
-    def __init__(self, browser_window, bot_src='bots/dumb_bot.py'):
+    def __init__(self, browser_window, bot_src="bots/dumb_bot.py"):
         self.run_bot = False
         self.thread_handle = None
         self.browser_window = browser_window
@@ -35,8 +35,8 @@ class DumbBot:
         self.reset_src()
 
     def reset_src(self):
-        with open(self.bot_src, 'r') as bot_src:
-            self.bot_script = str(''.join(bot_src))
+        with open(self.bot_src, "r") as bot_src:
+            self.bot_script = str("".join(bot_src))
 
     def main_thread(self):
         if self.bot_script is None:
@@ -45,7 +45,7 @@ class DumbBot:
             self.run_bot = True
             exec(self.bot_script)
         except Exception as e:
-            print(f'Bot Script Error  {e}')
+            print(f"Bot Script Error  {e}")
         print("main thread done")
 
     def thread_is_running(self):
@@ -66,6 +66,7 @@ class DumbBot:
 
 class JavascriptType(Enum):
     """Enum values used to assign types."""
+
     DOUBLE = 1
     STRING = 2
 
@@ -123,9 +124,9 @@ class BrowserTab(Gtk.VBox):
         #  Bots Values Window
         self.values_window = None
         #  Options for the interface
-        self.perform_periodic_bot_value_update = None
-        self.periodic_bot_value_update_time = 1
-        
+        # self.perform_periodic_bot_value_update = None
+        # self.periodic_bot_value_update_time = 1
+
         #  The bot
         self.bot = None
 
@@ -141,9 +142,24 @@ class BrowserTab(Gtk.VBox):
             "fixedRotationY": [JavascriptType.DOUBLE, "fixedRotationY", 0, "Yaw"],
             "fixedRotationZ": [JavascriptType.DOUBLE, "fixedRotationZ", 0, "Roll"],
             "rateCurrent": [JavascriptType.DOUBLE, "rateCurrent", 0, "Speed"],
-            "positionY": [JavascriptType.DOUBLE, "camera.position.x - issObject.position.x", 0, "Position X"],
-            "positionZ": [JavascriptType.DOUBLE, "camera.position.y - issObject.position.y", 0, "Position Y"],
-            "positionX": [JavascriptType.DOUBLE, "camera.position.z - issObject.position.z", 0, "Position Z"]
+            "positionY": [
+                JavascriptType.DOUBLE,
+                "camera.position.x - issObject.position.x",
+                0,
+                "Position X",
+            ],
+            "positionZ": [
+                JavascriptType.DOUBLE,
+                "camera.position.y - issObject.position.y",
+                0,
+                "Position Y",
+            ],
+            "positionX": [
+                JavascriptType.DOUBLE,
+                "camera.position.z - issObject.position.z",
+                0,
+                "Position Z",
+            ],
         }
         #  Declare this pages exposed commands
         self.exposed_commands = {
@@ -158,9 +174,11 @@ class BrowserTab(Gtk.VBox):
             "translateDown": "translateDown()",
             "translateUp": "translateUp()",
             "translateRight": "translateRight()",
-            "translateLeft": "translateLeft()"
+            "translateLeft": "translateLeft()",
         }
-        self.exposed_values_update_thread_handle = threading.Thread(target=self.exposed_values_update_thread)
+        self.exposed_values_update_thread_handle = threading.Thread(
+            target=self.exposed_values_update_thread
+        )
         self.exposed_values_update = True
         self.exposed_values_update_sleep_time = 0.3
         self.exposed_values_update_thread_handle.daemon = True
@@ -177,7 +195,7 @@ class BrowserTab(Gtk.VBox):
         if command in self.exposed_commands:
             GLib.idle_add(self.execute_javascript, self.exposed_commands[command])
         else:
-            print(f'User Command: {command} not available.')
+            print(f"User Command: {command} not available.")
 
     def show_exposed_values(self, button):
         """Create the page values window."""
@@ -190,11 +208,11 @@ class BrowserTab(Gtk.VBox):
         """Retrieve a str of the exposed values"""
         buffer_text = ""
         for var in self.exposed_values:
-            buffer_text += f'{var:20} ({self.exposed_values[var][self.VARDESCRIPTION]}): {self.exposed_values[var][self.VARVALUE]:5}\n'
+            buffer_text += f"{var:20} ({self.exposed_values[var][self.VARDESCRIPTION]}): {self.exposed_values[var][self.VARVALUE]:5}\n"
         return buffer_text
 
     def start_bot(self, button):
-        """Create and run the bot"""
+        """Run the bot"""
         if self.bot is None:
             return
         self.stop_bot()
@@ -206,7 +224,7 @@ class BrowserTab(Gtk.VBox):
         if self.bot is None:
             return
         self.bot.stop()
-        
+
     def edit_bot(self, button):
         """Create the edit bot window."""
         if self.edit_bot_window is not None:
@@ -229,7 +247,7 @@ class BrowserTab(Gtk.VBox):
         """Retrieve one of the exposed values."""
         if value_string in self.exposed_values:
             return self.exposed_values[value_string][self.VARVALUE]
-        return f'{value_string} is an unknown variable'
+        return f"{value_string} is an unknown variable"
 
     def get_value_callback(self, javascript_type):
         """Callback that will assign the queried value to the exposed value storage object."""
@@ -241,8 +259,12 @@ class BrowserTab(Gtk.VBox):
     def refresh_exposed_values(self):
         """Refresh all the exposed values values from the page"""
         for var in self.exposed_values:
-            self.webview.run_javascript(f'({self.exposed_values[var][self.VARJAVASCRIPT]}).toString()', None,
-                                        self.get_value_callback(self.exposed_values[var][self.VARTYPE]), var)
+            self.webview.run_javascript(
+                f"({self.exposed_values[var][self.VARJAVASCRIPT]}).toString()",
+                None,
+                self.get_value_callback(self.exposed_values[var][self.VARTYPE]),
+                var,
+            )
 
     def set_string_callback(self, webiew, result, user_data):
         """Callback to set the variable we just queried the value of as a string type."""
@@ -278,6 +300,7 @@ class BrowserTab(Gtk.VBox):
 
 class EditBotWindow(Gtk.Window):
     """Window to edit the bot script"""
+
     def __init__(self, bot):
         super(EditBotWindow, self).__init__()
         self.connect("destroy", self.on_destroy)
@@ -288,12 +311,15 @@ class EditBotWindow(Gtk.Window):
         scrolled_window.set_border_width(5)
         scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.buffer = Gtk.TextBuffer()
+        self.connect("key-press-event", self.on_keypress)
+        self.connect("key-release-event", self.on_keyrelease)
         self.text_view = Gtk.TextView(buffer=self.buffer)
         scrolled_window.add(self.text_view)
         self.add(scrolled_window)
         self.set_title("Edit Bot")
         self.show_all()
         self.load_bot_script()
+        self.control_event = False
 
     def load_bot_script(self):
         self.set_bot_script(self.bot.bot_script)
@@ -308,6 +334,22 @@ class EditBotWindow(Gtk.Window):
     def on_destroy(self, event):
         self.bot.bot_script = self.get_bot_script()
 
+    def on_keypress(self, widget, event):
+        print("Keypress")
+        if event.keyval == Gdk.KEY_Control_R:
+            self.control_event = True
+            print("CTRL")
+        if self.control_event and event.keyval == Gdk.KEY_Return:
+            print("Enter")
+            print("Got the CTRL-Enter")
+
+    def on_keyrelease(self, widget, event):
+        print("KeyRelease")
+        if event.keyval == Gdk.KEY_Control_R:
+            print("Ctrl")
+            self.control_event = False
+
+
 class ValuesWindow(Gtk.Window):
     """Window to show the bot values"""
 
@@ -318,6 +360,7 @@ class ValuesWindow(Gtk.Window):
         # self.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.buffer = Gtk.TextBuffer()
         self.text_view = Gtk.TextView(buffer=self.buffer)
+        self.text_view.set_cursor_visible(False)
         self.add(self.text_view)
         self.set_title("Exposed Values")
         self.show_all()
@@ -427,15 +470,19 @@ class Browser(Gtk.Window):
 
     def _key_pressed(self, widget, event):
         modifiers = Gtk.accelerator_get_default_mod_mask()
-        mapping = {Gdk.KEY_r: self._reload_tab,
-                   Gdk.KEY_w: self._close_current_tab,
-                   Gdk.KEY_t: self._open_new_tab,
-                   Gdk.KEY_l: self._focus_url_bar,
-                   Gdk.KEY_f: self._raise_find_dialog,
-                   Gdk.KEY_q: Gtk.main_quit}
+        mapping = {
+            Gdk.KEY_r: self._reload_tab,
+            Gdk.KEY_w: self._close_current_tab,
+            Gdk.KEY_t: self._open_new_tab,
+            Gdk.KEY_l: self._focus_url_bar,
+            Gdk.KEY_f: self._raise_find_dialog,
+            Gdk.KEY_q: Gtk.main_quit,
+        }
 
-        if event.state & modifiers == Gdk.ModifierType.CONTROL_MASK \
-                and event.keyval in mapping:
+        if (
+            event.state & modifiers == Gdk.ModifierType.CONTROL_MASK
+            and event.keyval in mapping
+        ):
             mapping[event.keyval]()
 
 
